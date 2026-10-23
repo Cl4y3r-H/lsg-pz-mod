@@ -1,26 +1,36 @@
-# Instala el mod LSGMod en Project Zomboid y, opcionalmente, crea tu archivo de configuración.
-# Uso: dejar este archivo junto a LSGMod_mod.zip, clic derecho -> "Ejecutar con PowerShell".
+# Instala el mod LSGMod en Project Zomboid y, opcionalmente, crea tu archivo de configuracion.
+# Funciona de dos formas:
+#   - junto a LSGMod_mod.zip (descarga), o
+#   - desde la carpeta del repositorio lsg-pz-mod (usa mod\LSGMod directamente).
+# Uso: powershell -ExecutionPolicy Bypass -File .\instalar_lsgmod.ps1
 
 $ErrorActionPreference = "Stop"
 $zip     = Join-Path $PSScriptRoot "LSGMod_mod.zip"
+$repoMod = Join-Path $PSScriptRoot "mod\LSGMod"
 $mods    = Join-Path $env:USERPROFILE "Zomboid\mods"
 $destino = Join-Path $mods "LSGMod"
 $cfgDir  = Join-Path $env:USERPROFILE "Zomboid\LSG"
 $cfg     = Join-Path $cfgDir "lsg.properties"
 $tmp     = Join-Path $env:TEMP "LSGMod_install"
 
-if (-not (Test-Path $zip)) {
-    Write-Host "No se encontro $zip. Deja este script en la misma carpeta que el ZIP." -ForegroundColor Red
+if (Test-Path $zip) {
+    if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+    Expand-Archive -Path $zip -DestinationPath $tmp -Force
+    $origen = Join-Path $tmp "LSGMod"
+    Write-Host "Origen: $zip"
+} elseif (Test-Path $repoMod) {
+    $origen = $repoMod
+    Write-Host "Origen: carpeta del repositorio ($repoMod)"
+} else {
+    Write-Host "No se encontro LSGMod_mod.zip ni la carpeta mod\LSGMod junto a este script." -ForegroundColor Red
     Read-Host "Enter para salir"; exit 1
 }
 
 # 1. Instalar el mod (reemplaza una version anterior)
-if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
-Expand-Archive -Path $zip -DestinationPath $tmp -Force
 New-Item -ItemType Directory -Force -Path $mods | Out-Null
 if (Test-Path $destino) { Remove-Item $destino -Recurse -Force }
-Copy-Item -Path (Join-Path $tmp "LSGMod") -Destination $mods -Recurse
-Remove-Item $tmp -Recurse -Force
+Copy-Item -Path $origen -Destination $mods -Recurse
+if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
 
 $ok = $true
 foreach ($f in @("42\mod.info", "42\media\java\LSGMod.jar", "42\media\lua\client\LSG_Main.lua", "42\media\lua\client\UI\ISLifeSyncWindow.lua")) {
@@ -50,5 +60,7 @@ if ($resp -eq "s") {
     Write-Host "Configuracion guardada en $cfg" -ForegroundColor Green
 }
 
+$ver = Select-String -Path (Join-Path $destino "42\media\lua\client\LSG_Main.lua") -Pattern "Versi.{1,2}n (\d+\.\d+\.\d+)" | Select-Object -First 1
+if ($ver) { Write-Host ("Version instalada: " + $ver.Matches[0].Groups[1].Value) }
 if ($ok) { Write-Host "`nListo. Desactiva 'LSG Bridge PoC' y activa 'LifeSync-Games (LSG)' junto a ZombieBuddy." -ForegroundColor Green }
 Read-Host "`nEnter para salir"
