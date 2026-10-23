@@ -1,7 +1,7 @@
 --[[
   LSGMod — cliente Lua del mod LifeSync-Games para Project Zomboid (Build 42).
 
-  Versión 0.3.2 (actividades 2.4, 2.6, 2.7, 2.9 y 2.12):
+  Versión 0.3.3 (actividades 2.4, 2.6, 2.7, 2.9 y 2.12):
     * Al cargar la partida: revisa la configuración e inicia sesión en LSG.
     * Tecla F9: abre o cierra la ventana LifeSync-Games con el saldo por dimensión.
 

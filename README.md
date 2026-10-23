@@ -1,6 +1,6 @@
 # LSGMod — LifeSync-Games para Project Zomboid (Build 42)
 
-Versión 0.3.2 · Actividades 2.4 (estructura), 2.6 (cliente autenticado), 2.7 (saldo), 2.9 (errores) y 2.12 (menú temprano) de la carta Gantt.
+Versión 0.3.3 · Actividades 2.4 (estructura), 2.6 (cliente autenticado), 2.7 (saldo), 2.9 (errores) y 2.12 (menú temprano) de la carta Gantt.
 
 Al cargar la partida el mod inicia sesión en LifeSync-Games. La tecla **F9** abre o cierra la
 ventana **LifeSync-Games**, que muestra el estado de la conexión y el saldo por dimensión, con
@@ -41,6 +41,11 @@ lsg-mod/
 | `lsgModBalance()` | Id de tarea → `OK\|Dim 1: 131 \| Físico: 114` |
 | `lsgModBalanceData()` | Id de tarea → `OK\|1=Dim 1=131;2=Físico=114` (para la ventana) |
 | `lsgModPoll(id)` | `PENDING`, `OK\|...` o `ERROR\|<CÓDIGO>\|<mensaje>` |
+
+## Cambios en 0.3.3
+
+- Nombres por defecto de las dimensiones de puntos, según `GET /admin/point-dimensions` (23-10-2026): 1 Social, 2 Físico, 3 Afectivo, 4 Mental, 5 Condición física, 6 Regulación emocional, 7 Lingüístico. Ya no hace falta configurarlos en `lsg.properties`.
+- `tools/lsg/`: scripts para la cuenta developer: `lsg_explorar.py` (exploración de solo lectura de la API) y `lsg_configurar.py` (alta y vinculación de los sensores, idempotente).
 
 ## Cambios en 0.3.2
 

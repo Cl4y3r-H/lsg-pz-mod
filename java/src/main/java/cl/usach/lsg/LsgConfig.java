@@ -37,9 +37,9 @@ public final class LsgConfig {
             "auth_url=" + DEFAULT_AUTH,
             "core_url=" + DEFAULT_CORE,
             "",
-            "# Nombres de las dimensiones de puntos (dim.<id>=<nombre>).",
-            "# Confirmar los IDs con el laboratorio; si un ID no tiene nombre se muestra como 'Dim <id>'.",
-            "# dim.2=Físico",
+            "# Opcional: cambiar el nombre con que se muestra una dimensión (dim.<id>=<nombre>).",
+            "# Por defecto: 1 Social, 2 Físico, 3 Afectivo, 4 Mental, 5 Condición física,",
+            "# 6 Regulación emocional, 7 Lingüístico.",
             "");
 
     private final Path path;
@@ -83,9 +83,18 @@ public final class LsgConfig {
     public String authUrl() { return trimSlash(get("auth_url", DEFAULT_AUTH)); }
     public String coreUrl() { return trimSlash(get("core_url", DEFAULT_CORE)); }
 
+    /**
+     * Nombres de las dimensiones de puntos de LSG (GET /admin/point-dimensions, 23-10-2026).
+     * Se pueden sobrescribir con dim.<id>=<nombre> en lsg.properties.
+     */
+    private static final java.util.Map<Long, String> DEFAULT_DIMENSIONS = java.util.Map.of(
+            1L, "Social", 2L, "Físico", 3L, "Afectivo", 4L, "Mental",
+            5L, "Condición física", 6L, "Regulación emocional", 7L, "Lingüístico");
+
     public String dimensionName(long id) {
         String name = get("dim." + id, "");
-        return name.isEmpty() ? "Dim " + id : name;
+        if (!name.isEmpty()) return name;
+        return DEFAULT_DIMENSIONS.getOrDefault(id, "Dim " + id);
     }
 
     private String get(String key, String def) {

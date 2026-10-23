@@ -16,7 +16,7 @@ import se.krka.kahlua.integration.annotations.LuaMethod;
  */
 public class LsgMod {
 
-    public static final String VERSION = "0.3.2";
+    public static final String VERSION = "0.3.3";
 
     private static LsgConfig config;
     private static LsgSession session;

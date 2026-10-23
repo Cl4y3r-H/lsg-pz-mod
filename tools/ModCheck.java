@@ -51,11 +51,11 @@ public class ModCheck {
 
         // 4. Saldo con nombres de dimensión desde la configuración.
         String bal = run(LsgMod.lsgModBalance());
-        check("4. Saldo: " + bal, bal.equals("OK|Dim 1: 131 | Físico: 114 | Dim 3: 0"));
+        check("4. Saldo: " + bal, bal.equals("OK|Social: 131 | Físico: 114 | Afectivo: 0"));
 
         // 4b. Formato compacto para la ventana de Lua.
         String data = run(LsgMod.lsgModBalanceData());
-        check("4b. Datos para la ventana: " + data, data.equals("OK|1=Dim 1=131;2=Físico=114;3=Dim 3=0"));
+        check("4b. Datos para la ventana: " + data, data.equals("OK|1=Social=131;2=Físico=114;3=Afectivo=0"));
 
         // 5. Token a punto de vencer → se renueva sin nuevo login.
         writeCfg(cfg, "secreta");
@@ -147,7 +147,7 @@ public class ModCheck {
         Files.write(cfg, String.join("\n",
                 "email=t@usach.cl", "password=" + password,
                 "auth_url=http://127.0.0.1:8766/lsg-auth", "core_url=http://127.0.0.1:8766/lsg-core-api",
-                "dim.2=Físico", "").getBytes(StandardCharsets.UTF_8));
+                "dim.3=Afectivo", "").getBytes(StandardCharsets.UTF_8));
         LsgMod.reset();
     }
 
