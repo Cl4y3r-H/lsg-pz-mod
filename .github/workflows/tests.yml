@@ -1,0 +1,23 @@
+name: Pruebas
+on: [push, pull_request]
+jobs:
+  modcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Compilar contra stubs de CI
+        run: |
+          mkdir -p build/stubs build/classes build/tools
+          javac -d build/stubs $(find tools/ci-stubs -name '*.java')
+          javac --release 17 -encoding UTF-8 -cp build/stubs -d build/classes $(find java/src -name '*.java')
+          javac --release 17 -encoding UTF-8 -cp build/classes:build/stubs -d build/tools tools/ModCheck.java
+      - name: Ejecutar ModCheck (servidor LSG simulado)
+        run: java -cp build/classes:build/stubs:build/tools cl.usach.lsg.ModCheck
+      - name: Verificar que los .lua estén en ASCII (tildes como bytes UTF-8)
+        run: |
+          python3 tools/lua_ascii.py mod/LSGMod/42/media/lua
+          git diff --exit-code -- mod/LSGMod/42/media/lua

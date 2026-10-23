@@ -1,0 +1,6 @@
+name=LifeSync-Games (LSG)
+id=LSGMod
+description=Integra Project Zomboid con LifeSync-Games: canjea en el juego los puntos ganados entrenando y leyendo en la vida real (tesis USACH).
+require=\ZombieBuddy
+javaJarFile=media/java/LSGMod.jar
+javaPkgName=cl.usach.lsg

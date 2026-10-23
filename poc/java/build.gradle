@@ -1,0 +1,31 @@
+// Compilación de la capa Java del PoC.
+//   gradle build  -PpzDir="<carpeta del juego>" -PzbJar="<ruta a ZombieBuddy.jar>"
+//   gradle deploy -PpzDir=... -PzbJar=...     (copia el JAR al mod)
+plugins { id 'java' }
+
+def pzDir = findProperty('pzDir') ?: System.getenv('PZ_DIR')
+def zbJar = findProperty('zbJar') ?: System.getenv('ZB_JAR')
+if (!pzDir || !zbJar) {
+    throw new GradleException("Indica -PpzDir=<carpeta de Project Zomboid> y -PzbJar=<ruta a ZombieBuddy.jar>")
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+    // Solo para compilar: el juego y ZombieBuddy los proveen en tiempo de ejecución.
+    compileOnly files("${pzDir}/projectzomboid.jar")   // contiene se.krka.kahlua (LuaMethod)
+    compileOnly files(zbJar)                          // contiene me.zed_0xff.zombie_buddy (Exposer)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 17          // bytecode Java 17: corre en el runtime del juego (17 o superior)
+    options.encoding = 'UTF-8'
+}
+
+jar { archiveFileName = 'LSGBridgePoC.jar' }
+
+tasks.register('deploy', Copy) {
+    dependsOn jar
+    from jar
+    into "${projectDir}/../mod/LSGBridgePoC/42/media/java"
+}

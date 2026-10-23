@@ -1,0 +1,8 @@
+build/
+*.class
+.gradle/
+.idea/
+*.iml
+out/
+lsg.properties
+__pycache__/

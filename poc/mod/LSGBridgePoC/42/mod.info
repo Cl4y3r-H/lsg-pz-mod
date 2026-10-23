@@ -1,0 +1,6 @@
+name=LSG Bridge PoC
+id=LSGBridgePoC
+description=Prueba de concepto del puente Java-Lua para LifeSync-Games (tesis USACH).
+require=\ZombieBuddy
+javaJarFile=media/java/LSGBridgePoC.jar
+javaPkgName=cl.usach.lsg.bridge
