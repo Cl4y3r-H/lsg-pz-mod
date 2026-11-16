@@ -14,9 +14,17 @@ jobs:
           mkdir -p build/stubs build/classes build/tools
           javac -d build/stubs $(find tools/ci-stubs -name '*.java')
           javac --release 17 -encoding UTF-8 -cp build/stubs -d build/classes $(find java/src -name '*.java')
-          javac --release 17 -encoding UTF-8 -cp build/classes:build/stubs -d build/tools tools/ModCheck.java
+          javac --release 17 -encoding UTF-8 -cp build/classes:build/stubs -d build/tools tools/ModCheck.java tools/AdapterCheck.java
       - name: Ejecutar ModCheck (servidor LSG simulado)
         run: java -cp build/classes:build/stubs:build/tools cl.usach.lsg.ModCheck
+      - name: Ejecutar AdapterCheck (contrato LSG Game Adapter, puerto 7878)
+        run: java -cp build/classes:build/stubs:build/tools cl.usach.lsg.AdapterCheck
+      - name: Pruebas de Lua (API del juego simulada)
+        run: |
+          sudo apt-get install -y -q lua5.1
+          lua5.1 tools/lua_test/test_rewards.lua mod/LSGMod/42/media/lua/client
+      - name: Catálogo de recompensas consistente (Lua ↔ JSON)
+        run: python3 tools/check_catalogo.py
       - name: Verificar que los .lua estén en ASCII (tildes como bytes UTF-8)
         run: |
           python3 tools/lua_ascii.py mod/LSGMod/42/media/lua
