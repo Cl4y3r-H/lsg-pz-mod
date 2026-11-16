@@ -1,10 +1,34 @@
 # LSGMod — LifeSync-Games para Project Zomboid (Build 42)
 
-Versión 0.3.3 · Actividades 2.4 (estructura), 2.6 (cliente autenticado), 2.7 (saldo), 2.9 (errores) y 2.12 (menú temprano) de la carta Gantt.
+Versión 0.4.0 · Integración con el overlay del cliente de escritorio LSG, además de las actividades 2.4, 2.6, 2.7, 2.9 y 2.12 de la carta Gantt.
 
-Al cargar la partida el mod inicia sesión en LifeSync-Games. La tecla **F9** abre o cierra la
-ventana **LifeSync-Games**, que muestra el estado de la conexión y el saldo por dimensión, con
-botones para actualizar y cerrar.
+El saldo y los canjes se muestran en el **overlay del cliente LSG** (E. Rodríguez), que se
+dibuja sobre el juego (tecla **F3** del cliente). El mod recibe las recompensas canjeadas
+mediante un servidor local en `127.0.0.1:7878` y las aplica en la partida: objetos en el
+inventario o multiplicadores de experiencia (GDD, Tabla 3.2).
+
+La ventana propia del mod (**F9**) se mantiene como opción secundaria para ver el saldo; solo
+funciona si se configura una cuenta en `lsg.properties`.
+
+## Integración con el cliente LSG
+
+```
+Overlay (F3) ──► cliente LSG (127.0.0.1:3333) ──► LifeSync-Games: descuenta los puntos
+     │
+     └──► POST 127.0.0.1:7878/reward {"reward_id": n} ──► LsgAdapter (Java) ──► cola
+                                                                              │
+                     LSG_Rewards.lua (cada tick, hilo del juego) ◄────────────┘
+                     entrega objeto / multiplicador y confirma el resultado
+```
+
+| Ruta del adaptador | Respuesta |
+|---|---|
+| `GET /health` | `{"status":"ok","game_ready":true}` si hay un personaje vivo en partida; `false` en el menú, al morir o si el juego no procesa ticks hace 3 s |
+| `POST /reward` | `200 {"ok":true}` aplicada · `400` cuerpo inválido · `422 unknown_reward` no está en el catálogo · `503 game_not_ready` · `504 application_timeout` si no se confirma en 5 s (queda en cola y se aplica después) · `500` error del juego |
+
+El contrato completo ("LSG Game Adapter API 1.0.0") lo publica el propio cliente en
+`http://127.0.0.1:3333/docs`. El registro del juego y de las mecánicas se explica en
+[`docs/integracion_overlay.md`](docs/integracion_overlay.md).
 
 ## Estructura
 
@@ -14,11 +38,13 @@ lsg-mod/
 │   ├── 42/mod.info                  ← require=\ZombieBuddy, javaJarFile, javaPkgName
 │   ├── 42/media/java/LSGMod.jar
 │   ├── 42/media/lua/client/LSG_Main.lua            ← estado, login, tareas, tecla F9
+│   ├── 42/media/lua/client/LSG_Rewards.lua         ← catálogo y aplicación de recompensas
 │   ├── 42/media/lua/client/UI/ISLifeSyncWindow.lua ← ventana (ISCollapsableWindow)
 │   └── common/
 ├── java/src/main/java/cl/usach/lsg/
 │   ├── Main.java          ← ZombieBuddy lo ejecuta al cargar el JAR
 │   ├── LsgMod.java        ← funciones expuestas a Lua (lsgMod*)
+│   ├── LsgAdapter.java    ← servidor 127.0.0.1:7878 para el overlay (solo java.base)
 │   ├── LsgConfig.java     ← lee ~/Zomboid/LSG/lsg.properties (crea plantilla si no existe)
 │   ├── LsgSession.java    ← login, renovación del token JWT y re-login
 │   ├── LsgClient.java     ← operaciones de LSG-Core-API (saldo)
@@ -27,6 +53,11 @@ lsg-mod/
 │   ├── LsgException.java  ← errores con código estable (CONFIG, AUTH, NETWORK, HTTP_xxx, PARSE)
 │   └── MiniJson.java      ← parser JSON sin dependencias
 ├── tools/ModCheck.java    ← 12 pruebas contra un servidor LSG falso
+├── tools/AdapterCheck.java ← 27 pruebas del contrato del adaptador (hace de overlay y de Lua)
+├── tools/lua_test/        ← 16 pruebas de los .lua con la API del juego simulada
+├── tools/check_catalogo.py ← verifica que el catálogo de Lua y el JSON coincidan
+├── tools/lsg/             ← scripts de la cuenta LSG: sensores y registro del juego/mecánicas
+├── docs/integracion_overlay.md ← cómo registrar el juego y probar con el overlay
 ├── tools/lua_ascii.py     ← convierte tildes de los .lua a escapes (\ddd)
 └── instalar_lsgmod.ps1    ← instalador para Windows
 ```
@@ -41,6 +72,24 @@ lsg-mod/
 | `lsgModBalance()` | Id de tarea → `OK\|Dim 1: 131 \| Físico: 114` |
 | `lsgModBalanceData()` | Id de tarea → `OK\|1=Dim 1=131;2=Físico=114` (para la ventana) |
 | `lsgModPoll(id)` | `PENDING`, `OK\|...` o `ERROR\|<CÓDIGO>\|<mensaje>` |
+| `lsgModRewardStart(ids)` | Inicia el adaptador con los `reward_id` válidos → `OK\|7878` o `ERROR\|PORT_IN_USE\|...` |
+| `lsgModRewardHeartbeat(listo)` | Latido de cada tick (`"1"` si hay personaje vivo) |
+| `lsgModRewardNext()` | `""` o `<ticket>\|<reward_id>` |
+| `lsgModRewardDone(ticket, res)` | `res`: `OK`, `UNKNOWN_REWARD\|...`, `GAME_NOT_READY\|...` o `FAILED\|...` |
+
+## Cambios en 0.4.0
+
+- Adaptador de recompensas (`LsgAdapter`) según el contrato del cliente LSG: servidor HTTP en
+  `127.0.0.1:7878` hecho con `ServerSocket` (módulo `java.base`), porque el Java incluido en el juego
+  podría no traer `jdk.httpserver`. Solo escucha en la interfaz local.
+- `LSG_Rewards.lua`: catálogo provisional del GDD (insumos, médicos, revista de generadores y
+  multiplicadores de Carpintería), entrega al inventario o al suelo si el personaje va
+  sobrecargado (HU4) y aviso sobre el personaje. Al cargar la partida valida cada entrada y excluye
+  las que no existen en la versión del juego.
+- El adaptador funciona sin cuenta en `lsg.properties`: el cliente LSG maneja el login. Sin cuenta,
+  el mod ya no muestra un error, sino un aviso para usar el overlay.
+- `tools/lsg/lsg_registrar_juego.py` y `catalogo_recompensas.json`: registran Project Zomboid y sus
+  mecánicas (con `reward_id`, `cost_amount` y `attribute_id`) en LifeSync-Games.
 
 ## Cambios en 0.3.3
 
@@ -93,21 +142,26 @@ con la ventana de login (fase F4) o con un token de larga duración, a confirmar
 ## Instalación y prueba (Windows)
 
 1. Dejar `LSGMod_mod.zip` e `instalar_lsgmod.ps1` en la misma carpeta y ejecutar el script
-   con PowerShell. Responder `s` para crear la configuración con tu correo y contraseña.
+   con PowerShell. La cuenta en `lsg.properties` es opcional desde la 0.4.0 (solo la usa la ventana F9).
 2. En el menú **Mods**: activar **ZombieBuddy** y **LifeSync-Games (LSG)**, y **desactivar LSG Bridge PoC**
    (ambos usan F9).
-3. Cargar o crear una partida.
+3. Instalar y abrir el cliente LSG, iniciar sesión (perfil remoto, el de producción) y dejarlo abierto.
+4. Usar el modo de pantalla **Ventana sin bordes** del juego, para que el overlay quede visible.
+5. Cargar o crear una partida. Ver [`docs/integracion_overlay.md`](docs/integracion_overlay.md) para
+   registrar el juego y sus mecánicas.
 
 | Paso | Resultado esperado |
 |---|---|
-| Al cargar | `LSG conectado (jugador <id>). Presiona F9 para abrir LifeSync-Games` |
-| F9 | Se abre la ventana; el botón dice `Consultando...` y luego aparece el saldo o `Sin puntos registrados` |
-| Actualizar sin internet | `Estado: Sin conexión` en rojo y el mensaje de error, sin congelar el juego |
-| F9 otra vez | Se cierra la ventana |
-| Contraseña incorrecta | `Correo o contraseña de LSG incorrectos` |
+| Al cargar | `LSG listo: canjea tus puntos desde el overlay del cliente LSG (F3)`; en `console.txt`, `Recompensas disponibles para el overlay: ...` |
+| Abrir `http://127.0.0.1:7878/health` en el navegador | `{"status":"ok","game_ready":true}` |
+| F3 (cliente LSG) | El overlay muestra saldo, mecánicas y el estado `Game Ready` |
+| Canjear una mecánica | Se descuentan los puntos, aparece `LifeSync: <recompensa>` sobre el personaje y el objeto en el inventario |
+| Canjear yendo sobrecargado | El objeto queda en el suelo junto al personaje |
+| Volver al menú principal | El overlay pasa a `Game Loading` y no permite canjear |
+| F9 (con cuenta configurada) | Ventana propia del mod con el saldo |
 
-En `~/Zomboid/console.txt`, las líneas `[LSGMod]` muestran el detalle, incluida la respuesta
-cruda del saldo, útil para identificar los IDs de dimensión.
+En `~/Zomboid/console.txt`, las líneas `[LSGMod]` muestran el detalle: recompensas excluidas del
+catálogo, cada recompensa recibida y su resultado.
 
 ## Pruebas fuera del juego
 
@@ -126,6 +180,9 @@ Datos para la ventana: 1=Dim 1=131;2=Físico=114;3=Dim 3=0  OK
 Servidor caído → ERROR|NETWORK .......................... OK
 Resultado: 12 aprobadas, 0 fallidas
 ```
+
+Además: `AdapterCheck` (27 pruebas del contrato del overlay), `tools/lua_test` (16 pruebas de Lua)
+y `tools/check_catalogo.py`. Todas se ejecutan en GitHub Actions.
 
 ## Compilación
 

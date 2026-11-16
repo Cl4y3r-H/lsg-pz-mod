@@ -12,11 +12,18 @@ import se.krka.kahlua.integration.annotations.LuaMethod;
  *   lsgModBalanceData() → id de tarea; resultado OK|<id=nombre=puntos;...> (para la ventana)
  *   lsgModPoll(id)    → PENDING | OK|... | ERROR|<CÓDIGO>|<mensaje>
  *
+ * Adaptador de recompensas para el overlay del cliente LSG (ver LsgAdapter):
+ *
+ *   lsgModRewardStart(ids)        → OK|<puerto> | ERROR|PORT_IN_USE|<mensaje>  (ids: "101,102,...")
+ *   lsgModRewardHeartbeat(listo)  → latido de cada tick; listo = "1" si hay personaje vivo en partida
+ *   lsgModRewardNext()            → "" | <ticket>|<reward_id>
+ *   lsgModRewardDone(ticket, res) → res = OK | UNKNOWN_REWARD|... | GAME_NOT_READY|... | FAILED|...
+ *
  * Todas retornan de inmediato: el trabajo de red ocurre en hilos secundarios.
  */
 public class LsgMod {
 
-    public static final String VERSION = "0.3.3";
+    public static final String VERSION = "0.4.0";
 
     private static LsgConfig config;
     private static LsgSession session;
@@ -72,6 +79,32 @@ public class LsgMod {
 
     @LuaMethod(name = "lsgModPoll", global = true)
     public static String lsgModPoll(String id) { return LsgTasks.poll(id); }
+
+    // ------------------------------------------------- adaptador de recompensas
+
+    @LuaMethod(name = "lsgModRewardStart", global = true)
+    public static String lsgModRewardStart(String rewardIds) {
+        return LsgAdapter.start(LsgAdapter.DEFAULT_PORT, rewardIds);
+    }
+
+    @LuaMethod(name = "lsgModRewardHeartbeat", global = true)
+    public static String lsgModRewardHeartbeat(String ready) {
+        LsgAdapter.heartbeat("1".equals(ready) || "true".equalsIgnoreCase(ready));
+        return "OK";
+    }
+
+    @LuaMethod(name = "lsgModRewardNext", global = true)
+    public static String lsgModRewardNext() { return LsgAdapter.next(); }
+
+    @LuaMethod(name = "lsgModRewardDone", global = true)
+    public static String lsgModRewardDone(String ticket, String result) {
+        try {
+            LsgAdapter.done(Long.parseLong(ticket.trim()), result);
+            return "OK";
+        } catch (RuntimeException e) {
+            return "ERROR|INTERNAL|ticket inválido: " + ticket;
+        }
+    }
 
     /** Solo para pruebas: fuerza a releer la configuración. */
     static synchronized void reset() { config = null; }

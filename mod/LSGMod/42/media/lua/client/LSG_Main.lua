@@ -1,9 +1,11 @@
 --[[
   LSGMod — cliente Lua del mod LifeSync-Games para Project Zomboid (Build 42).
 
-  Versión 0.3.3 (actividades 2.4, 2.6, 2.7, 2.9 y 2.12):
-    * Al cargar la partida: revisa la configuración e inicia sesión en LSG.
+  Versión 0.4.0:
+    * Al cargar la partida: inicia el adaptador de recompensas para el overlay del
+      cliente LSG (LSG_Rewards.lua) y, si hay cuenta configurada, inicia sesión en LSG.
     * Tecla F9: abre o cierra la ventana LifeSync-Games con el saldo por dimensión.
+      Es opcional: el saldo y los canjes se ven en el overlay del cliente LSG (F3).
 
   Toda la red ocurre en Java (hilos secundarios). Lua solo inicia tareas y consulta
   su resultado cada pocos ticks, así el juego nunca se congela.
@@ -126,7 +128,7 @@ onLoginResult = function(result)
         st.playerId = p[2]
         st.message = nil
         loginRetries = 0
-        say("LSG conectado (jugador " .. p[2] .. "). Presiona F9 para abrir LifeSync-Games")
+        say("LSG conectado (jugador " .. p[2] .. "). Canjes en el overlay (F3); saldo tambi\195\169n con F9")
     else
         local code = errorCode(result)
         local text = errorText(result)
@@ -204,6 +206,12 @@ local function onGameStart()
     print("[LSGMod] Versi\195\179n " .. lsgModVersion())
     print("[LSGMod] Prueba de tildes (debe decir cancion con tilde en la o): canci\195\179n")
 
+    -- El adaptador no depende de la cuenta del mod: el cliente LSG maneja el login.
+    local adapterOk = LSG.Rewards and LSG.Rewards.start()
+    if LSG.Rewards and not adapterOk then
+        say("LSG: " .. tostring(LSG.Rewards.lastMessage))
+    end
+
     local status = lsgModStatus()
     if status == "OK" then
         startLogin()
@@ -212,11 +220,15 @@ local function onGameStart()
     local p = split(status, "|", 2)
     LSG.state.connection = "config"
     if p[1] == "CREATED" or p[1] == "INCOMPLETE" then
-        LSG.state.message = "Completa tu correo y contrase\195\177a en " .. tostring(p[2])
+        -- Sin cuenta en el mod: no es un error, el saldo se ve en el overlay del cliente LSG.
+        LSG.state.message = "Saldo y canjes en el overlay del cliente LSG (F3). "
+            .. "Para ver el saldo tambi\195\169n aqu\195\173, completa " .. tostring(p[2])
+        print("[LSGMod] " .. LSG.state.message)
+        if adapterOk then say("LSG listo: canjea tus puntos desde el overlay del cliente LSG (F3)") end
     else
         LSG.state.message = "No se pudo leer la configuraci\195\179n en " .. tostring(p[2])
+        say("LSG: " .. LSG.state.message)
     end
-    say("LSG: " .. LSG.state.message)
 end
 
 local function onKeyPressed(key)

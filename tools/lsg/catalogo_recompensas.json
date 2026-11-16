@@ -1,0 +1,32 @@
+{
+  "_comentario": "Catálogo provisional del GDD (Memoria, cap. 3, Tabla 3.2). Cada reward_id debe existir también en mod/LSGMod/42/media/lua/client/LSG_Rewards.lua (la prueba tools/lua_test lo verifica). attribute_id: 2 = Físico, 5 = Lingüístico (mismos IDs que usan los sensores).",
+  "videojuego": {
+    "name": "Project Zomboid",
+    "genre": "Supervivencia",
+    "description": "Supervivencia zombi en mundo abierto. Integrado con LifeSync-Games mediante LSGMod (tesis C. Hernández, USACH).",
+    "engine": "Propio (Java + Lua)",
+    "developer": "The Indie Stone",
+    "publisher": "The Indie Stone",
+    "version": "42",
+    "type": "PC",
+    "executable": "ProjectZomboid64.exe"
+  },
+  "mecanicas": [
+    { "reward_id": 101, "name": "PZ · Clavos (x25)", "type": "economy", "attribute_id": 2, "cost_amount": 10,
+      "description": "Entrega 25 clavos en el inventario (o en el suelo si vas sobrecargado)." },
+    { "reward_id": 102, "name": "PZ · Cinta adhesiva", "type": "economy", "attribute_id": 2, "cost_amount": 15,
+      "description": "Entrega 1 rollo de cinta adhesiva." },
+    { "reward_id": 103, "name": "PZ · Pegamento", "type": "economy", "attribute_id": 2, "cost_amount": 15,
+      "description": "Entrega 1 pegamento." },
+    { "reward_id": 201, "name": "PZ · Aguja de sutura (x2)", "type": "health", "attribute_id": 2, "cost_amount": 15,
+      "description": "Entrega 2 agujas de sutura." },
+    { "reward_id": 202, "name": "PZ · Antibióticos", "type": "health", "attribute_id": 2, "cost_amount": 40,
+      "description": "Entrega 1 caja de antibióticos." },
+    { "reward_id": 301, "name": "PZ · Revista de generadores", "type": "modifier", "attribute_id": 5, "cost_amount": 50,
+      "description": "Entrega la revista que enseña a usar generadores (recompensa anti-azar)." },
+    { "reward_id": 401, "name": "PZ · Carpintería vol. 1", "type": "buff", "attribute_id": 5, "cost_amount": 10,
+      "description": "Multiplicador de experiencia x3 en Carpintería (niveles 1-2), como leer el libro vol. 1." },
+    { "reward_id": 402, "name": "PZ · Carpintería vol. 2", "type": "buff", "attribute_id": 5, "cost_amount": 20,
+      "description": "Multiplicador de experiencia x5 en Carpintería (niveles 3-4), como leer el libro vol. 2." }
+  ]
+}
